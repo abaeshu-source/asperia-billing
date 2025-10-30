@@ -1,0 +1,137 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+<title>Asperia Billing</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#111111">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<style>
+:root{ --bg:#f7f7fb; --card:#ffffff; --muted:#6b7280; --text:#111827; --accent:#111111; --border:#e5e7eb; --bad:#b91c1c }
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+.wrap{max-width:1024px;margin:0 auto;padding:16px;display:flex;flex-direction:column;gap:16px}
+h1{font-size:20px;margin:0 0 4px;display:flex;gap:10px;align-items:center}
+.brand img{width:28px;height:28px}
+.row{display:grid;grid-template-columns:repeat(12,1fr);gap:10px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:12px}
+.btn{background:var(--accent);color:#fff;border:0;border-radius:12px;padding:12px 14px;cursor:pointer;font-size:16px}
+.btn-outline{background:#fff;color:#111;border:1px solid var(--border);padding:10px 12px;border-radius:10px;cursor:pointer;font-size:15px}
+label{display:block;font-size:13px;color:var(--muted);margin-bottom:6px}
+input,select{width:100%;padding:12px;border:1px solid var(--border);border-radius:10px;font-size:16px}
+.pill{background:#f3f4f6;border:1px solid var(--border);padding:10px;border-radius:10px;text-align:center;font-size:14px}
+.stat{background:#f3f4f6;border:1px solid var(--border);border-radius:12px;padding:10px}
+.footer{font-size:12px;color:var(--muted)}
+@media(max-width:680px){.row{grid-template-columns:1fr}h1{font-size:18px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="row" style="align-items:center">
+    <div style="grid-column:span 7;">
+      <h1 class="brand"><img src="icons/icon-192.png" alt="Asperia logo"> Asperia Billing</h1>
+      <div class="muted">Installable app for iPhone & Android. Works offline.</div>
+    </div>
+    <div style="grid-column:span 5;display:flex;gap:8px;justify-content:flex-end;align-items:center">
+      <div style="display:inline-flex;border:1px solid var(--border);border-radius:12px;overflow:hidden">
+        <button id="modeCalc">Calculate</button>
+        <button id="modeOpt">Optimize</button>
+      </div>
+      <button id="runBtn" class="btn">Run</button>
+    </div>
+  </div>
+
+  <div class="row">
+    <div class="card" style="grid-column:span 3;">
+      <label>Total patients (Optimize mode)</label>
+      <input type="number" id="totalPatients" value="57" min="0" inputmode="numeric"/>
+    </div>
+    <div class="card" style="grid-column:span 3;">
+      <label>Available minutes (both modes)</label>
+      <input type="number" id="totalMinutes" value="840" min="0" inputmode="numeric"/>
+      <div class="footer" style="margin-top:6px">Tip: 14 hours = 840 minutes</div>
+    </div>
+    <div class="card" style="grid-column:span 6;">
+      <div style="font-weight:600;margin-bottom:6px">Quick set counts by group</div>
+      <div class="row">
+        <div style="grid-column:span 4;"><label>Physical — total</label><input id="groupPhysical" type="number" value="0"/></div>
+        <div style="grid-column:span 4;"><label>Regular — total</label><input id="groupRegular" type="number" value="0"/></div>
+        <div style="grid-column:span 4;"><label>Mental — total</label><input id="groupMental" type="number" value="0"/></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card"><h3>Visit types</h3><div id="rows"></div></div>
+
+  <div class="card">
+    <h3>Result</h3>
+    <div id="intro" class="muted">Choose a mode and tap <b>Run</b>.</div>
+    <div id="calcWrap" style="display:none">
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px">
+        <div class="stat"><div class="label">Revenue (manual)</div><div id="calcRevenue">$0</div></div>
+        <div class="stat"><div class="label">Minutes</div><div id="calcMinutes">0</div></div>
+        <div class="stat"><div class="label">Hours</div><div id="calcHours">0</div></div>
+        <div class="stat"><div class="label">Patients</div><div id="calcPatients">0</div></div>
+        <div class="stat"><div class="label">Utilization</div><div id="calcUtil">0%</div></div>
+      </div>
+      <div id="calcOverCap" style="color:#b91c1c;display:none;margin-top:8px"></div>
+    </div>
+
+    <div id="optWrap" style="display:none">
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:8px">
+        <div class="stat"><div class="label">Max revenue</div><div id="statRevenue">$0</div></div>
+        <div class="stat"><div class="label">Used minutes</div><div id="statMinutes">0 / 0</div></div>
+        <div class="stat"><div class="label">Utilization</div><div id="statUtil">0%</div></div>
+        <div class="stat"><div class="label">Total patients</div><div id="statPatients">0</div></div>
+        <div class="stat"><div class="label">Remaining optimized</div><div id="statRemaining">0</div></div>
+      </div>
+      <div id="noFeasible" style="color:#b91c1c;display:none;margin-top:8px">No feasible mix found.</div>
+      <div id="mixTableWrap" style="margin-top:10px;display:none;overflow:auto"><table id="mixTable"><thead><tr><th>Type</th><th>Kind</th><th>MH Calls</th><th>Total Count</th><th>Minutes each</th><th>Fee each</th><th>Subtotal</th></tr></thead><tbody id="mixBody"></tbody></table></div>
+    </div>
+  </div>
+
+  <div class="footer"><b>Mental health calls:</b> Min minutes = (calls−1)×15 + 8. Fee = $50 × calls.</div>
+</div>
+
+<script>
+if('serviceWorker' in navigator){window.addEventListener('load',()=>{navigator.serviceWorker.register('service-worker.js').catch(()=>{});});}
+
+(function(){
+  let MODE='CALC';
+  let visitTypes=[
+    {id:'FP',name:'Full physical',minutes:30,fee:140,count:0,kind:'Physical',mhCalls:1},
+    {id:'SP',name:'Physical (5–10 min)',minutes:5,fee:108,count:0,kind:'Physical',mhCalls:1},
+    {id:'MH',name:'Mental health',minutes:8,fee:50,count:0,kind:'Mental',mhCalls:1},
+    {id:'R10',name:'Regular 10 min',minutes:10,fee:40,count:0,kind:'Regular',mhCalls:1},
+    {id:'R15',name:'Regular 15 min',minutes:15,fee:59,count:0,kind:'Regular',mhCalls:1},
+    {id:'R25',name:'Regular 25 min',minutes:25,fee:79,count:0,kind:'Regular',mhCalls:1},
+    {id:'R35',name:'Regular 35 min',minutes:35,fee:97,count:0,kind:'Regular',mhCalls:1},
+  ];
+  const mhMin=(c)=>Math.max(1,Math.min(6,Math.floor(c))); const mhFee=(c)=>mhMin(c)*50;
+  const el=(id)=>document.getElementById(id); const fmt=(n)=>Number(n).toLocaleString();
+  function setMode(m){MODE=m; el('modeCalc').classList.toggle('active',MODE==='CALC'); el('modeOpt').classList.toggle('active',MODE==='OPT'); el('calcWrap').style.display=MODE==='CALC'?'block':'none'; el('optWrap').style.display=MODE==='OPT'?'block':'none'; el('totalPatients').disabled=MODE==='CALC'; el('runBtn').textContent=MODE==='CALC'?'Run Calculate':'Run Optimize';}
+  function renderRows(){const c=el('rows'); c.innerHTML=''; visitTypes.forEach((v,idx)=>{ const card=document.createElement('div'); card.className='card'; const title=document.createElement('div'); title.style.fontWeight=600; title.style.marginBottom='6px'; title.textContent=v.name; card.appendChild(title);
+    const grid=document.createElement('div'); grid.style.display='grid'; grid.style.gridTemplateColumns='repeat(12,1fr)'; grid.style.gap='8px';
+    function addField(labelText,elField,span){ const d=document.createElement('div'); d.style.gridColumn='span '+(span||6); const lab=document.createElement('label'); lab.textContent=labelText; d.appendChild(lab); d.appendChild(elField); grid.appendChild(d); }
+    const kindSel=document.createElement('select'); ['Physical','Regular','Mental','Other'].forEach(k=>{const o=document.createElement('option'); o.value=k; o.textContent=k; if(v.kind===k) o.selected=true; kindSel.appendChild(o);} ); kindSel.onchange=(e)=>{v.kind=e.target.value; if(v.kind!=='Mental')v.mhCalls=1; renderRows();}; addField('Kind',kindSel,4);
+    const mins=document.createElement('input'); mins.type='number'; mins.value=v.minutes; mins.oninput=(e)=>{v.minutes=Math.max(0,Math.floor(Number(e.target.value||0)));}; addField('Minutes',mins,4);
+    const calls=document.createElement('select'); [1,2,3,4,5,6].forEach(cn=>{const o=document.createElement('option'); o.value=cn; o.textContent=cn; if(v.mhCalls===cn) o.selected=true; calls.appendChild(o);}); calls.disabled=v.kind!=='Mental'; calls.onchange=(e)=>{v.mhCalls=parseInt(e.target.value); v.minutes=Math.max(v.minutes,(v.mhCalls-1)*15+8); v.fee=mhFee(v.mhCalls); renderRows();}; addField('MH Calls',calls,2);
+    const fee=document.createElement('input'); fee.type='number'; fee.value=v.fee; fee.disabled=v.kind==='Mental'; fee.oninput=(e)=>{v.fee=Math.max(0,Math.floor(Number(e.target.value||0)));}; addField('Fee',fee,2);
+    const rpm=document.createElement('div'); rpm.className='pill'; rpm.textContent=(v.fee/v.minutes||0).toFixed(2); addField('$/min',rpm,2);
+    const cnt=document.createElement('input'); cnt.type='number'; cnt.value=v.count||0; cnt.oninput=(e)=>{v.count=Math.max(0,Math.floor(Number(e.target.value||0)));}; addField('Count',cnt,4);
+    const rm=document.createElement('button'); rm.className='btn-outline'; rm.textContent='Remove'; rm.onclick=()=>{visitTypes.splice(idx,1); renderRows();}; addField('',rm,12);
+    card.appendChild(grid); c.appendChild(card); }); }
+  function applyGroup(gr){ const id=gr==='Physical'?'groupPhysical':gr==='Regular'?'groupRegular':'groupMental'; const val=Math.max(0,Math.floor(Number(el(id).value||0))); visitTypes.forEach(v=>{ if(v.kind===gr) v.count=0;}); const rows=visitTypes.filter(v=>v.kind===gr).sort((a,b)=>(b.fee/b.minutes)-(a.fee/a.minutes)); if(rows.length>0 && val>0) rows[0].count=val; renderRows(); }
+  window.applyGroup=(g)=>applyGroup(g); window.clearGroup=(g)=>{ visitTypes.forEach(v=>{ if(v.kind===g) v.count=0;}); renderRows(); }
+  function runCalculate(){ const T=Math.max(0,Math.floor(Number(el('totalMinutes').value||0))); let pts=0,mins=0,rev=0; visitTypes.forEach(v=>{ const c=Math.max(0,Math.floor(v.count||0)); pts+=c; mins+=c*v.minutes; rev+=c*v.fee; }); el('intro').style.display='none'; el('calcWrap').style.display='block'; el('optWrap').style.display='none'; el('calcRevenue').textContent='$'+fmt(rev); el('calcMinutes').textContent=fmt(mins); el('calcHours').textContent=(mins/60).toFixed(2); el('calcPatients').textContent=fmt(pts); const util=T>0?(mins/T)*100:0; el('calcUtil').textContent=util.toFixed(1)+'%'; const box=el('calcOverCap'); const over=mins-T; if(T>0 && over>0){box.style.display='block';box.textContent='Over by '+fmt(over)+' min ('+(over/60).toFixed(2)+' h)';}else if(T>0 && over<0){box.style.display='block';box.textContent='Under by '+fmt(-over)+' min ('+(-over/60).toFixed(2)+' h)';}else{box.style.display='none';} }
+  function runOptimize(){ const P=Math.max(0,Math.floor(Number(el('totalPatients').value||0))); const T=Math.max(0,Math.floor(Number(el('totalMinutes').value||0))); const types=visitTypes.map(v=>Object.assign({},v,{fixedCount:Math.max(0,Math.floor(v.count||0))})); let fixedPatients=0,fixedMinutes=0,fixedRevenue=0; const fixedMix={}; types.forEach(t=>{ const c=t.fixedCount; if(c>0){ fixedPatients+=c; fixedMinutes+=c*t.minutes; fixedRevenue+=c*t.fee; fixedMix[t.id]=c; }}); if(fixedPatients>P || fixedMinutes>T){ showNoFeasible(); return;} const Pleft=P-fixedPatients, Tleft=T-fixedMinutes; if(Pleft===0){ showResult({revenue:fixedRevenue,usedMinutes:fixedMinutes,mix:fixedMix,remainingPatients:0},P,T); return;} const free=types.filter(t=> (t.fixedCount||0)===0); if(free.length===0){ showNoFeasible(); return;} const NEG=-1e15; const dp=Array.from({length:Pleft+1},()=>Array(Tleft+1).fill(NEG)); const parent=Array.from({length:Pleft+1},()=>Array(Tleft+1).fill(null)); dp[0][0]=0; for(let p=0;p<=Pleft-1;p++){ for(let t=0;t<=Tleft;t++){ const cur=dp[p][t]; if(cur<=NEG/2) continue; for(let k=0;k<free.length;k++){ const m=free[k].minutes, f=free[k].fee; const nt=t+m, np=p+1; if(np<=Pleft && nt<=Tleft){ const cand=cur+f; if(cand>dp[np][nt]){ dp[np][nt]=cand; parent[np][nt]={p,t,k}; } } } } } let bestT=0,bestRev=NEG; for(let t=0;t<=Tleft;t++){ if(dp[Pleft][t]>bestRev){ bestRev=dp[Pleft][t]; bestT=t; } } if(bestRev<=NEG/2){ showNoFeasible(); return; } const freeCounts={}; let p=Pleft,t=bestT; while(p>0){ const par=parent[p][t]; if(!par) break; const id=free[par.k].id; freeCounts[id]=(freeCounts[id]||0)+1; p=par.p; t=par.t; } const mix=Object.assign({},freeCounts); for(const id in fixedMix) mix[id]=(mix[id]||0)+fixedMix[id]; showResult({revenue:fixedRevenue+bestRev,usedMinutes:fixedMinutes+bestT,mix,remainingPatients:Pleft},P,T); }
+  function showNoFeasible(){ el('intro').style.display='none'; el('calcWrap').style.display='none'; el('optWrap').style.display='block'; el('noFeasible').style.display='block'; el('mixTableWrap').style.display='none'; }
+  function showResult(res,P,T){ el('intro').style.display='none'; el('calcWrap').style.display='none'; el('optWrap').style.display='block'; el('noFeasible').style.display='none'; el('mixTableWrap').style.display='block'; el('statRevenue').textContent='$'+fmt(res.revenue); el('statMinutes').textContent=fmt(res.usedMinutes)+' / '+fmt(T); el('statUtil').textContent=((res.usedMinutes/T)*100).toFixed(1)+'%'; el('statPatients').textContent=fmt(P); el('statRemaining').textContent=fmt(res.remainingPatients); const tbody=el('mixBody'); tbody.innerHTML=''; visitTypes.forEach(v=>{ const total=res.mix[v.id]||0; if(total>0){ const tr=document.createElement('tr'); tr.innerHTML=`<td>${v.name}</td><td>${v.kind}</td><td>${v.kind==='Mental'?v.mhCalls:'-'}</td><td>${fmt(total)}</td><td>${fmt(v.minutes)}</td><td>$${fmt(v.fee)}</td><td><b>$${fmt(total*v.fee)}</b></td>`; tbody.appendChild(tr); } }); }
+  document.getElementById('modeCalc').onclick=()=>setMode('CALC'); document.getElementById('modeOpt').onclick=()=>setMode('OPT'); document.getElementById('runBtn').onclick=()=>{ MODE==='CALC'?runCalculate():runOptimize(); };
+  renderRows(); setMode('CALC');
+})();</script>
+</body>
+</html>
